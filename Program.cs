@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-
-
 // Create and configure the host builder
 var builder = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder =>
 {
+    // Explicitly bind to port 5115
+    webBuilder.UseUrls("http://localhost:5115");
     // Configure application configuration
     webBuilder.ConfigureAppConfiguration((hostingContext, config) =>
     {
@@ -45,16 +45,15 @@ var builder = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilde
                     // Console.WriteLine(response); The entire blob
                     // Convert the response to json data
                     var jsonDataDictionary = await getJsonDataFromResponse(httpResponseMessage);
-                    // Validate the username
                     if (isXUsername(jsonDataDictionary))
                     {
-                        Console.WriteLine("Username exists!");
+                        return Results.Ok(true);
                     }
                     else
                     {
-                        Console.WriteLine("Username nonexistant!");
+                        return Results.Ok(false);
                     }
-                    return Results.Ok(jsonDataDictionary);
+
                 }
                 catch (HttpRequestException e)
                 {
@@ -65,7 +64,6 @@ var builder = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilde
         });
     });
 });
-
 // Converts string response body to a json document dictionary
 static async Task<Dictionary<string, object>> getJsonDataFromResponse(HttpResponseMessage httpResponseMessage)
 {
@@ -93,44 +91,35 @@ static async Task<Dictionary<string, object>> getJsonDataFromResponse(HttpRespon
     }
     return jsonDataDictionary;
 }
-
 // Determines if a username exists provided the json data dictionary
 static bool isXUsername(Dictionary<string, object> jsonDataDictionary)
 {
     return jsonDataDictionary.ContainsKey("id") && jsonDataDictionary.ContainsKey("name") && jsonDataDictionary.ContainsKey("username");
 }
-
 // Setup method that tests endpoint
-static async Task TestEndpoint()
+static async Task<string> TestEndpoint(string xUsername)
 {
     // Create local http client
     using var client = new HttpClient();
-    // Get a request from a response sent
-    var response = await client.GetAsync("http://localhost:5115/GetLists?username=marckuban69"); // Assuming 5115 is your actual port
-    // Respond based on the response
-    if (response.IsSuccessStatusCode)
     {
-        var content = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response: {content}");
-    }
-    else
-    {
-        Console.WriteLine($"Request failed with status code: {response.StatusCode}");
+        // Get a request from a response sent
+        var response = await client.GetAsync($"http://localhost:5115/GetLists?username={xUsername}");
+        // Respond based on the response
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            return content;
+        }
+        else
+        {
+            return "error";
+        }
     }
 }
-
 // Build the custom host builder
 var host = builder.Build();
-
 // Start the host in the background
 var hostTask = host.RunAsync();
-
-// // Run delay to make sure you call an endpoint after the host builder is run
-// await Task.Delay(1000);
-
-// // Test the endpoint
-// await TestEndpoint();
-
 // Create XLoyalty Gui
 Application.EnableVisualStyles();
 Application.SetCompatibleTextRenderingDefault(false);
@@ -145,10 +134,10 @@ var form = new Form
     Size = new System.Drawing.Size(420, 420)
 };
 // Create the label
-var label = new Label 
+var label = new Label
 {
-    Text = "\nWelcome to X LOYALTY!\nEnter an X account username to determine if it exists or not!",
-    Location = new System.Drawing.Point(0, 60),
+    Text = "\nWelcome to X LOYALTY!\nEnter an X account username (alphanumeric) to determine if it exists or not!",
+    Location = new System.Drawing.Point(0, 0),
     Size = new System.Drawing.Size(420, 60),
     BackColor = System.Drawing.Color.Black,
     ForeColor = System.Drawing.Color.White,
@@ -160,7 +149,7 @@ form.Controls.Add(label);
 var usernameTextBox = new TextBox
 {
     Text = "Enter Username Here!",
-    Location = new System.Drawing.Point(105, 180),
+    Location = new System.Drawing.Point(105, 60),
     Size = new System.Drawing.Size(210, 180),
     BackColor = System.Drawing.Color.White,
     ForeColor = System.Drawing.Color.Black,
@@ -168,6 +157,62 @@ var usernameTextBox = new TextBox
 };
 // Add the textbox to the form
 form.Controls.Add(usernameTextBox);
+// Add a button to submit username and to try again
+var submitTryAgainButton = new Button
+{
+    Text = "Go",
+    Location = new Point(180, 120),
+    Size = new Size(60, 30),
+    BackColor = Color.White,
+    ForeColor = Color.Black,
+    TextAlign = ContentAlignment.MiddleCenter
+};
+// Add an asynchronous event handler
+submitTryAgainButton.Click += async (sender, e) =>
+{
+    // Disable the button right away to not lodge the pipeline
+    submitTryAgainButton.Enabled = false;
+    try
+    {
+        // X usernames are only supposed to be alphanumeric
+        if (usernameTextBox.Text.All(char.IsLetterOrDigit))
+        {
+            string response = await TestEndpoint(usernameTextBox.Text);
+            // Something went wrong
+            if (response == "error")
+            {
+                // Just flash the error for 5 seconds and quit
+                label.Text = "Something went wrong on our end!";
+                Thread.Sleep(5000);
+                Application.Exit();
+            }
+            // Username exists
+            else if (response == "true")
+            {
+                Console.WriteLine("Username Exists!");
+            }
+            // Username doesn't exist
+            else
+            {
+                Console.WriteLine("Username Doesn't Exists!");
+            }
+        }
+        else
+        {
+            submitTryAgainButton.Text = "Try Again";
+        }
+    }
+    catch (Exception ex)
+    {
+        // Just flash the error for 5 seconds and quit
+        label.Text = ex.Message;
+        Thread.Sleep(5000);
+        Application.Exit();
+    }
+    submitTryAgainButton.Enabled = true;
+};
+// Add the button to the form
+form.Controls.Add(submitTryAgainButton);
 // Kill the host when you kill the form
 form.FormClosed += async (sender, e) => await host.StopAsync();
 // Run the form
