@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using System.Windows.Forms;
 
 
 // Create and configure the host builder
@@ -138,14 +137,22 @@ Application.SetCompatibleTextRenderingDefault(false);
 // Create the form
 var form = new Form
 {
-    Text = "X LOYALTY"
+    Text = "X LOYALTY",
+    MaximizeBox = false,
+    MinimizeBox = false,
+    FormBorderStyle = FormBorderStyle.FixedSingle,
+    Size = new System.Drawing.Size(420, 420)
 };
 // Create the label
 var label = new Label 
 {
-    Text = "Welcome to X LOYALTY!",
-    AutoSize = true,
-    Location = new System.Drawing.Point(12, 12)
+    Text = "\nWelcome to X LOYALTY!\nEnter an X account username to determine if it exists or not!",
+    Location = new System.Drawing.Point(0, 0),
+    Size = new System.Drawing.Size(420, 420),
+    AutoSize = false,
+    BackColor = System.Drawing.Color.Black,
+    ForeColor = System.Drawing.Color.White,
+    TextAlign = ContentAlignment.TopCenter
 };
 // Add the label to the form
 form.Controls.Add(label);
