@@ -18,7 +18,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 
-// Validate the username
+// Converts string response body to a json document dictionary
 static Task<Dictionary<string, object>> getJsonDataFromResponse(string responseBody)
 {
         // Parse the response body into a json
@@ -40,6 +40,12 @@ static Task<Dictionary<string, object>> getJsonDataFromResponse(string responseB
             //Console.WriteLine($"Key: {property.Name}, Value: {property.Value}"); // Print key-value pair
         }
         return Task.FromResult(jsonDataDictionary);
+}
+
+// Determines if a username exists provided the json data dictionary
+static bool isXUsername(Dictionary<string, object> jsonDataDictionary)
+{
+    return jsonDataDictionary.ContainsKey("id") && jsonDataDictionary.ContainsKey("name") && jsonDataDictionary.ContainsKey("username");
 }
 
 // Get Lists of Followers and Following
@@ -68,7 +74,7 @@ app.MapGet("/GetLists", async (string username, IConfiguration configuration) =>
         // Convert the response to json data
         var jsonDataDictionary = await getJsonDataFromResponse(responseBody);
         // Validate the username
-        if (jsonDataDictionary.ContainsKey("id") && jsonDataDictionary.ContainsKey("name") && jsonDataDictionary.ContainsKey("username"))
+        if (isXUsername(jsonDataDictionary))
         {
             Console.WriteLine("Username exists!");
         }
