@@ -1,6 +1,7 @@
 using System.Text.Json;
 // Build the web application
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args); // Exception thrown: 'System.IO.DirectoryNotFoundException' in Microsoft.Extensions.FileProviders.Physical.dll
+
 // Loading configuration settings
 builder.Configuration.AddJsonFile("secrets.json", optional: false, reloadOnChange: true);
 // Add services to the container.
@@ -16,28 +17,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseHttpsRedirection();
-// Basically make the username a requirement
-app.MapGet("/GetLists", async (string username, IConfiguration configuration) =>
+
+// Validate the username
+static Task<Dictionary<string, object>> getJsonDataFromResponse(string responseBody)
 {
-    // Setup http client
-    using var httpClient = new HttpClient();
-    // Save the bearer token
-    string bearerToken = configuration["BearerToken"];
-    // Add the authorization header
-    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
-    // Build the url to request the existence of the username provided
-    string url = $"https://api.twitter.com/2/users/by/username/{username}";
-    //Console.WriteLine(bearerToken); Checking configuration settings
-    //Console.WriteLine(url); Checking url
-    // Make the custom request
-    HttpResponseMessage response = await httpClient.GetAsync(url);
-    // Console.WriteLine(response); The entire blob
-    try
-    {
-        // Ensure success
-        response.EnsureSuccessStatusCode();
-        // Return response, part of the blob we care about
-        string responseBody = await response.Content.ReadAsStringAsync();
         // Parse the response body into a json
         var jsonDocument = JsonDocument.Parse(responseBody);
         // Get the root element of the json document
@@ -54,8 +37,36 @@ app.MapGet("/GetLists", async (string username, IConfiguration configuration) =>
         foreach (var property in jsonRoot.EnumerateObject())
         {
             jsonDataDictionary.Add(property.Name, property.Value.ToString());
-            //Console.WriteLine($"Key: {property.Name}, Value: {property.Value.ToString()}"); Print key-value pair
+            //Console.WriteLine($"Key: {property.Name}, Value: {property.Value}"); // Print key-value pair
         }
+        return Task.FromResult(jsonDataDictionary);
+}
+
+// Get Lists of Followers and Following
+app.MapGet("/GetLists", async (string username, IConfiguration configuration) =>
+{
+    // Setup http client
+    using var httpClient = new HttpClient();
+    // Save the bearer token
+    string bearerToken = configuration["BearerToken"];
+    // Add the authorization header
+    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", bearerToken);
+    // Build the url to request the existence of the username provided
+    string url = $"https://api.twitter.com/2/users/by/username/{username}";
+    //Console.WriteLine(bearerToken); Checking configuration settings
+    //Console.WriteLine(url); Checking url
+    // Make the custom request
+    HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(url);
+    // Console.WriteLine(response); The entire blob
+    try
+    {
+         // Ensure success
+        httpResponseMessage.EnsureSuccessStatusCode();
+        
+        // Return response, part of the blob we care about
+        string responseBody = await httpResponseMessage.Content.ReadAsStringAsync();
+        // Convert the response to json data
+        var jsonDataDictionary = await getJsonDataFromResponse(responseBody);
         // Validate the username
         if (jsonDataDictionary.ContainsKey("id") && jsonDataDictionary.ContainsKey("name") && jsonDataDictionary.ContainsKey("username"))
         {
@@ -67,7 +78,7 @@ app.MapGet("/GetLists", async (string username, IConfiguration configuration) =>
     {
         Console.WriteLine("Username nonexistant!");
         // Console.WriteLine(e.GetBaseException()); Print exception
-        return await response.Content.ReadAsStringAsync();
+        return await httpResponseMessage.Content.ReadAsStringAsync();
     }
 })
 .WithName("GetLists")
