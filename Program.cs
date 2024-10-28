@@ -1,4 +1,11 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using System.Windows.Forms;
+
 
 // Create and configure the host builder
 var builder = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder =>
@@ -119,8 +126,30 @@ var host = builder.Build();
 // Start the host in the background
 var hostTask = host.RunAsync();
 
-// Run delay to make sure you call an endpoint after the host builder is run
-await Task.Delay(1000);
+// // Run delay to make sure you call an endpoint after the host builder is run
+// await Task.Delay(1000);
 
-// Test the endpoint
-await TestEndpoint();
+// // Test the endpoint
+// await TestEndpoint();
+
+// Create XLoyalty Gui
+Application.EnableVisualStyles();
+Application.SetCompatibleTextRenderingDefault(false);
+// Create the form
+var form = new Form
+{
+    Text = "X LOYALTY"
+};
+// Create the label
+var label = new Label 
+{
+    Text = "Welcome to X LOYALTY!",
+    AutoSize = true,
+    Location = new System.Drawing.Point(12, 12)
+};
+// Add the label to the form
+form.Controls.Add(label);
+// Kill the host when you kill the form
+form.FormClosed += async (sender, e) => await host.StopAsync();
+// Run the form
+Application.Run(form);
