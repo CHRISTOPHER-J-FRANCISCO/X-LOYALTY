@@ -19,8 +19,12 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Converts string response body to a json document dictionary
-static Task<Dictionary<string, object>> getJsonDataFromResponse(string responseBody)
+static async Task<Dictionary<string, object>> getJsonDataFromResponse(HttpResponseMessage httpResponseMessage )
 {
+        // Ensure success
+        httpResponseMessage.EnsureSuccessStatusCode();
+        // Return response, part of the blob we care about
+        string responseBody = await httpResponseMessage.Content.ReadAsStringAsync();
         // Parse the response body into a json
         var jsonDocument = JsonDocument.Parse(responseBody);
         // Get the root element of the json document
@@ -39,7 +43,7 @@ static Task<Dictionary<string, object>> getJsonDataFromResponse(string responseB
             jsonDataDictionary.Add(property.Name, property.Value.ToString());
             //Console.WriteLine($"Key: {property.Name}, Value: {property.Value}"); // Print key-value pair
         }
-        return Task.FromResult(jsonDataDictionary);
+        return jsonDataDictionary;
 }
 
 // Determines if a username exists provided the json data dictionary
@@ -66,26 +70,21 @@ app.MapGet("/GetLists", async (string username, IConfiguration configuration) =>
     // Console.WriteLine(response); The entire blob
     try
     {
-         // Ensure success
-        httpResponseMessage.EnsureSuccessStatusCode();
-        
-        // Return response, part of the blob we care about
-        string responseBody = await httpResponseMessage.Content.ReadAsStringAsync();
         // Convert the response to json data
-        var jsonDataDictionary = await getJsonDataFromResponse(responseBody);
+        var jsonDataDictionary = await getJsonDataFromResponse(httpResponseMessage);
         // Validate the username
         if (isXUsername(jsonDataDictionary))
         {
             Console.WriteLine("Username exists!");
+        } else {
+            Console.WriteLine("Username nonexistant!");
         }
-        return responseBody;
     }
-    catch (HttpRequestException)
+    catch (HttpRequestException e)
     {
-        Console.WriteLine("Username nonexistant!");
-        // Console.WriteLine(e.GetBaseException()); Print exception
-        return await httpResponseMessage.Content.ReadAsStringAsync();
+        Console.WriteLine(e.GetBaseException()); // Print exception   
     }
+    return await httpResponseMessage.Content.ReadAsStringAsync();
 })
 .WithName("GetLists")
 .WithOpenApi();
