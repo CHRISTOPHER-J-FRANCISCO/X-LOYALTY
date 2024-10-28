@@ -141,21 +141,33 @@ var form = new Form
     MaximizeBox = false,
     MinimizeBox = false,
     FormBorderStyle = FormBorderStyle.FixedSingle,
+    BackColor = System.Drawing.Color.Black,
     Size = new System.Drawing.Size(420, 420)
 };
 // Create the label
 var label = new Label 
 {
     Text = "\nWelcome to X LOYALTY!\nEnter an X account username to determine if it exists or not!",
-    Location = new System.Drawing.Point(0, 0),
-    Size = new System.Drawing.Size(420, 420),
-    AutoSize = false,
+    Location = new System.Drawing.Point(0, 60),
+    Size = new System.Drawing.Size(420, 60),
     BackColor = System.Drawing.Color.Black,
     ForeColor = System.Drawing.Color.White,
     TextAlign = ContentAlignment.TopCenter
 };
 // Add the label to the form
 form.Controls.Add(label);
+// Add the textfield to the form
+var usernameTextBox = new TextBox
+{
+    Text = "Enter Username Here!",
+    Location = new System.Drawing.Point(105, 180),
+    Size = new System.Drawing.Size(210, 180),
+    BackColor = System.Drawing.Color.White,
+    ForeColor = System.Drawing.Color.Black,
+    TextAlign = HorizontalAlignment.Center
+};
+// Add the textbox to the form
+form.Controls.Add(usernameTextBox);
 // Kill the host when you kill the form
 form.FormClosed += async (sender, e) => await host.StopAsync();
 // Run the form
