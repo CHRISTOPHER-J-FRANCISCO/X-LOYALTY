@@ -58,7 +58,7 @@ var builder = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilde
                 catch (HttpRequestException e)
                 {
                     // Console.WriteLine(e.GetBaseException()); // Print exception 
-                    return Results.Problem(e.StackTrace);
+                    return Results.Ok(e.StackTrace);
                 }
             }).WithName("GetLists");
         });
@@ -100,21 +100,22 @@ static bool isXUsername(Dictionary<string, object> jsonDataDictionary)
 static async Task<string> TestEndpoint(string xUsername)
 {
     // Create local http client
-    using var client = new HttpClient();
+    var client = new HttpClient();
+    // Get a request from a response sent
+    var response = await client.GetAsync($"http://localhost:5115/GetLists?username={xUsername}");
+    // Respond based on the response
+    if (response.IsSuccessStatusCode)
     {
-        // Get a request from a response sent
-        var response = await client.GetAsync($"http://localhost:5115/GetLists?username={xUsername}");
-        // Respond based on the response
-        if (response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            return content;
-        }
-        else
-        {
-            return "error";
-        }
+        var content = await response.Content.ReadAsStringAsync();
+        client.Dispose();
+        return content;
     }
+    else
+    {
+        client.Dispose();
+        return "error";
+    }
+    
 }
 // Build the custom host builder
 var host = builder.Build();
@@ -167,6 +168,33 @@ var submitTryAgainButton = new Button
     ForeColor = Color.Black,
     TextAlign = ContentAlignment.MiddleCenter
 };
+// Create elon smiling to show the user when the username exists
+var elonSmilingImage = new PictureBox
+{
+    Image = Image.FromFile("elonSmiling.jpg"),
+    Location = new Point(0, 180),
+    Size = new Size(420, 200),
+    SizeMode = PictureBoxSizeMode.Zoom,
+};
+form.Controls.Add(elonSmilingImage);
+elonSmilingImage.Visible = false;
+// Create elon frowning to show the user when the username is non existant
+var elonFrowningImage = new PictureBox
+{
+    Image = Image.FromFile("elonFrowning.jpeg"),
+    Location = new Point(0, 180),
+    Size = new Size(420, 200),
+    SizeMode = PictureBoxSizeMode.Zoom,
+};
+form.Controls.Add(elonFrowningImage);
+elonFrowningImage.Visible = false;
+// When the username textbox is selected it hides the images
+usernameTextBox.Click += async (sender, e) =>
+{
+    // Just hide the elon images
+    elonFrowningImage.Visible = false;
+    elonSmilingImage.Visible = false;
+};
 // Add an asynchronous event handler
 submitTryAgainButton.Click += async (sender, e) =>
 {
@@ -189,12 +217,12 @@ submitTryAgainButton.Click += async (sender, e) =>
             // Username exists
             else if (response == "true")
             {
-                Console.WriteLine("Username Exists!");
+                elonSmilingImage.Visible = true;
             }
             // Username doesn't exist
             else
             {
-                Console.WriteLine("Username Doesn't Exists!");
+                elonFrowningImage.Visible = true;
             }
         }
         else
