@@ -8,7 +8,7 @@ Say goodbye to one-sided relationships!
 
 ### Get Started :baby:
 
-1. Provide your X id.
+1. Provide your X username.
 2. Generate a comprehensive list of followers and unfollowers.
 
 ### Discover :mag_right:
@@ -48,8 +48,8 @@ Just me at the moment!
 ## TO DO
 
 - Organize the code
-- Have user enter their bearer token bc these calls aint for free
 - Have selenium run in the background to extract the followers/followings
+  - provide a walkthrough 
 - Provide a loading screen
 - List the followers and following on either side
 - Allow the user by clicking a username to load their profile page for them to manually follow back or unfollow
