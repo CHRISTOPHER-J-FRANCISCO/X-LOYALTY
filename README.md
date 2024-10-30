@@ -43,4 +43,14 @@ Just me at the moment!
 
 ## Disclaimer :wink:
 
-*Instagram is owned by a Reptilian!*
+*Instagram is owned by a Reptilian Extraterrestial!*
+
+## TO DO
+
+- Organize the code
+- Have user enter their bearer token bc these calls aint for free
+- Have selenium run in the background to extract the followers/followings
+- Provide a loading screen
+- List the followers and following on either side
+- Allow the user by clicking a username to load their profile page for them to manually follow back or unfollow
+- Ditch Gui and create an actual front end using idk Bun
