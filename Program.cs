@@ -38,65 +38,45 @@ var builder = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilde
                     // Build the url to request the existence of the username provided
                     string url = $"https://api.twitter.com/2/users/by/username/{username}";
                     //Console.WriteLine(bearerToken); Checking configuration settings
-                    //Console.WriteLine(url); Checking url
-
+                    //Console.WriteLine(url); Checking ur
                     // Make the custom request
                     HttpResponseMessage httpResponseMessage = await httpClient.GetAsync(url);
-                    // Console.WriteLine(response); The entire blob
-                    // Convert the response to json data
-                    var jsonDataDictionary = await getJsonDataFromResponse(httpResponseMessage);
-                    if (isXUsername(jsonDataDictionary))
+                    // Get the response body
+                    string responseBody = await httpResponseMessage.Content.ReadAsStringAsync();
+                    // Parse the response body into a json
+                    var jsonDocument = JsonDocument.Parse(responseBody);
+                    Console.Write("BODYYYY");
+                    Console.Write(responseBody);
+                    JsonElement rootJsonElement = jsonDocument.RootElement;
+                    // Too many requests
+                    if (rootJsonElement.TryGetProperty("title", out var property))
                     {
-                        return Results.Ok(true);
+                            Console.WriteLine(property.ToString());
+                            return Results.Ok(-1);
+                
                     }
+                    // Username exists
+                    else if (rootJsonElement.TryGetProperty("data", out var prop))
+                    {
+                        return Results.Ok(1);
+                    }
+                    // Username doesn't exist
                     else
                     {
-                        return Results.Ok(false);
-                    }
 
+                        return Results.Ok(0);
+                    }
                 }
-                catch (HttpRequestException e)
+                catch (HttpRequestException)
                 {
-                    // Console.WriteLine(e.GetBaseException()); // Print exception 
-                    return Results.Ok(e.StackTrace);
+                    // Something went horribly wrong on our end
+                    return Results.BadRequest();
                 }
             }).WithName("GetLists");
         });
     });
 });
-// Converts string response body to a json document dictionary
-static async Task<Dictionary<string, object>> getJsonDataFromResponse(HttpResponseMessage httpResponseMessage)
-{
-    // Ensure success
-    httpResponseMessage.EnsureSuccessStatusCode();
-    // Return response, part of the blob we care about
-    string responseBody = await httpResponseMessage.Content.ReadAsStringAsync();
-    // Parse the response body into a json
-    var jsonDocument = JsonDocument.Parse(responseBody);
-    // Get the root element of the json document
-    var jsonRoot = jsonDocument.RootElement;
-    // Create a nested dictionary to store the json response
-    Dictionary<string, object> jsonDataDictionary = new Dictionary<string, object>();
-    // Extract the first property of the json object because it's the actual data
-    var jsonElementData = jsonRoot.EnumerateObject().First();
-    // Parse the first value of the json object as a new json object
-    jsonDocument = JsonDocument.Parse(jsonElementData.Value.ToString());
-    // Update the json object variable to point to the new json object
-    jsonRoot = jsonDocument.RootElement;
-    // Now print the key values of the actual data
-    foreach (var property in jsonRoot.EnumerateObject())
-    {
-        jsonDataDictionary.Add(property.Name, property.Value.ToString());
-        //Console.WriteLine($"Key: {property.Name}, Value: {property.Value}"); // Print key-value pair
-    }
-    return jsonDataDictionary;
-}
-// Determines if a username exists provided the json data dictionary
-static bool isXUsername(Dictionary<string, object> jsonDataDictionary)
-{
-    return jsonDataDictionary.ContainsKey("id") && jsonDataDictionary.ContainsKey("name") && jsonDataDictionary.ContainsKey("username");
-}
-// Setup method that tests endpoint
+// Setup method that tests endpoint to determine if a user exists
 static async Task<string> TestEndpoint(string xUsername)
 {
     // Create local http client
@@ -106,16 +86,17 @@ static async Task<string> TestEndpoint(string xUsername)
     // Respond based on the response
     if (response.IsSuccessStatusCode)
     {
-        var content = await response.Content.ReadAsStringAsync();
-        client.Dispose();
-        return content;
+        string responseCode = await response.Content.ReadAsStringAsync();
+        return responseCode;
     }
+    // Bad request
     else
     {
+        Console.WriteLine("Something went wrong!");
         client.Dispose();
         return "error";
     }
-    
+
 }
 // Build the custom host builder
 var host = builder.Build();
@@ -188,12 +169,23 @@ var elonFrowningImage = new PictureBox
 };
 form.Controls.Add(elonFrowningImage);
 elonFrowningImage.Visible = false;
+// Create elon saying go fuck yourself image for too many requests
+var elonFYourselfImage = new PictureBox
+{
+    Image = Image.FromFile("elonFYourself.jpg"),
+    Location = new Point(0, 180),
+    Size = new Size(420, 200),
+    SizeMode = PictureBoxSizeMode.Zoom,
+};
+form.Controls.Add(elonFYourselfImage);
+elonFYourselfImage.Visible = false;
 // When the username textbox is selected it hides the images
 usernameTextBox.Click += async (sender, e) =>
 {
     // Just hide the elon images
     elonFrowningImage.Visible = false;
     elonSmilingImage.Visible = false;
+    elonFYourselfImage.Visible = false;
 };
 // Add an asynchronous event handler
 submitTryAgainButton.Click += async (sender, e) =>
@@ -215,14 +207,25 @@ submitTryAgainButton.Click += async (sender, e) =>
                 Application.Exit();
             }
             // Username exists
-            else if (response == "true")
+            else if (response == "1")
             {
                 elonSmilingImage.Visible = true;
+                elonFrowningImage.Visible = false;
+                elonFYourselfImage.Visible = false;
             }
             // Username doesn't exist
-            else
+            else if (response == "0")
             {
                 elonFrowningImage.Visible = true;
+                elonSmilingImage.Visible = false;
+                elonFYourselfImage.Visible = false;
+            }
+            else if (response == "-1")
+            {
+                elonFYourselfImage.Visible = true;
+                elonFrowningImage.Visible = false;
+                elonSmilingImage.Visible = false;
+   
             }
         }
         else
